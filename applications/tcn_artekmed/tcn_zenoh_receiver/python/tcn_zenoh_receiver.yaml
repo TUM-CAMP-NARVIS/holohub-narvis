@@ -1,3 +1,30 @@
+application:
+  title: TCN Artekmed Zenoh Receiver
+  version: 1.0
+  inputFormats: []
+  outputFormats: ["screen"]
+
+resources:
+  cpu: 2
+  gpu: 1
+  memory: 1Gi
+  gpuMemory: 1Gi
+
+decoder:
+  cuda_device_ordinal: 0
+  verbose: true
+
+holoviz:
+  window_title: "TCN Artekmed Zenoh Receiver"
+  width: 800
+  height: 640
+  framerate: 60
+  tensors:
+    - name: ""
+      type: color
+      opacity: 1.0
+      priority: 0
+
 zenoh:
   topic_prefix: "tcn/loc/pcpd"
   capture_node: "k4a_capture_multi"

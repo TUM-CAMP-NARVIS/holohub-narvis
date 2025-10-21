@@ -73,18 +73,22 @@ class StatsOp(Operator):
             self.fps.append(self.metadata.get("fps", 0))
 
     def stop(self):
-        self._logger.info(
-            f"Encode Latency (ms) (min, max, avg): {min(self.encode_latency):.3f}, {max(self.encode_latency):.3f}, {sum(self.encode_latency) / len(self.encode_latency):.3f}"
-        )
-        self._logger.info(
-            f"Decode Latency (ms) (min, max, avg): {min(self.decode_latency):.3f}, {max(self.decode_latency):.3f}, {sum(self.decode_latency) / len(self.decode_latency):.3f}"
-        )
-        self._logger.info(
-            f"Jitter Time (ms) (min, max, avg): {min(self.jitter_time):.3f}, {max(self.jitter_time):.3f}, {sum(self.jitter_time) / len(self.jitter_time):.3f}"
-        )
-        self._logger.info(
-            f"FPS (min, max, avg): {min(self.fps):.3f}, {max(self.fps):.3f}, {sum(self.fps) / len(self.fps):.3f}"
-        )
+        if self.encode_latency:
+            self._logger.info(
+                f"Encode Latency (ms) (min, max, avg): {min(self.encode_latency):.3f}, {max(self.encode_latency):.3f}, {sum(self.encode_latency) / len(self.encode_latency):.3f}"
+            )
+        if self.decode_latency:
+            self._logger.info(
+                f"Decode Latency (ms) (min, max, avg): {min(self.decode_latency):.3f}, {max(self.decode_latency):.3f}, {sum(self.decode_latency) / len(self.decode_latency):.3f}"
+            )
+        if self.jitter_time:
+            self._logger.info(
+                f"Jitter Time (ms) (min, max, avg): {min(self.jitter_time):.3f}, {max(self.jitter_time):.3f}, {sum(self.jitter_time) / len(self.jitter_time):.3f}"
+            )
+        if self.fps:
+            self._logger.info(
+                f"FPS (min, max, avg): {min(self.fps):.3f}, {max(self.fps):.3f}, {sum(self.fps) / len(self.fps):.3f}"
+            )
 
 
 class CdrDecoderOp(Operator):
@@ -124,7 +128,7 @@ class CdrDecoderOp(Operator):
         spec.output("output")
 
     def compute(self, op_input, op_output, context):
-        value = op_input.receive("in")
+        value = op_input.receive("input")
 
         type_name = self.metadata.get("cdr_type_name", None)
 
@@ -147,7 +151,7 @@ class CdrDecoderOp(Operator):
             msg = InvalidMessage()
 
         result = self.result_factory(self.metadata, type_name, msg)
-        op_output.emit(result, "out")
+        op_output.emit(result, "output")
 
 
 
@@ -228,7 +232,7 @@ class ZenohSubscriberOp(Operator):
 
         self.metadata.set("cdr_type_name", type_name)
 
-        op_output.emit(block, "out", acq_timestamp=ts)
+        op_output.emit(block, "output", acq_timestamp=ts)
 
     def stop(self):
         self.async_cond_.event_state = AsynchronousEventState.EVENT_NEVER
@@ -258,7 +262,7 @@ class PingRxOp(Operator):
         spec.input("input")
 
     def compute(self, op_input, op_output, context):
-        value = op_input.receive("in")
+        value = op_input.receive("input")
         print(f"Received bytes: {len(value)}", self.metadata.keys())
 
 
@@ -273,7 +277,8 @@ class App(hs.core.Application):
         capture_node = zenoh_config.get("capture_node")
         zenoh_config_file = zenoh_config.get("zenoh_config_file")
 
-        zenoh.init_log_from_env_or("warn")
+
+        zenoh.init_log_from_env_or("info")
         self.session = zenoh.open(zenoh.Config.from_json5(open(zenoh_config_file).read()))
 
         find_cameras_topic = f"{topic_prefix}/{capture_node}/rpc/sensor/*/describe"
@@ -285,7 +290,7 @@ class App(hs.core.Application):
             topic_prefix, None, channel_calibration, channel_poses, channels_config, self.session
         )
         stream_keys = list(sorted(stream_config.keys()))
-
+        print(stream_keys)
 
         def cb_decoder(meta, type_name, msg):
             # is a video message, so return the raw image-bytes (typically bit/bytestream)
@@ -294,20 +299,22 @@ class App(hs.core.Application):
         for stream_index, stream_name in enumerate(stream_keys):
             config = stream_config[stream_name]
             topic = config.descriptor.stream_topic
-            subscriber = ZenohSubscriberOp(self, self.session, topic)
+            subscriber = ZenohSubscriberOp(self, self.session, topic,
+                                           name=f"subscriber_{stream_name}")
             deserializer = CdrDecoderOp(self, VideoStreamMessage, cb_decoder, stream_name, stream_index,
                                    SemanticType.from_identifier(config.descriptor.buffer_info.semantic_type),
-                                   config.annotations)
-            printer = PingRxOp(self)
+                                   config.annotations,
+                                        name=f"cdr_decoder_{stream_name}")
+            printer = PingRxOp(self, name=f"printer_{stream_name}")
 
             decoder = NvVideoDecoderOp(
                 self,
-                name="nv_decoder",
-                allocator=UnboundedAllocator(self, name="video_decoder_pool"),
+                name=f"nv_decoder_{stream_name}",
+                allocator=UnboundedAllocator(self, name="video_decoder_pool_{stream_name}"),
                 **self.kwargs("decoder"),
             )
 
-            stats = StatsOp(self, name="stats")
+            stats = StatsOp(self, name=f"stats_{stream_name}")
 
             self.add_flow(subscriber, deserializer, {('output', 'input')})
             self.add_flow(deserializer, printer, {('output', 'input')})
@@ -319,6 +326,7 @@ class App(hs.core.Application):
 def main(config_file=None):
     # make configurable or use holoscan debug level here too
     logging.basicConfig(level=logging.DEBUG)
+    set_log_level(LogLevel.WARN)
 
     app = App()
     app.config(config_file)
