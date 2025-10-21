@@ -1,0 +1,45 @@
+{
+	"application": {
+		"name": "tcn_receiver_test",
+		"description": "Test to evaluate zenoh-network based data streaming",
+		"authors": [
+			{
+				"name": "Ulrich Eck",
+				"affiliation": "TU Munich"
+			}
+		],
+		"language": "python",
+		"version": "0.1.0",
+		"changelog": {
+			"0.1.0": "Initial Release"
+		},
+		"holoscan_sdk": {
+			"minimum_required_version": "3.7.0",
+			"tested_versions": [
+				"3.7.0"
+			]
+		},
+		"platforms": ["x86_64", "aarch64"],
+		"tags": ["keyword1", "keyword2", "keyword3"],
+		"ranking": 1,
+		"requirements": {
+			"example_requirement_1": {
+				"type": "data",
+				"name": "Example Data",
+				"description": "Example data dependency - remove or replace with actual requirements"
+			}
+		},
+		"modes": {
+			"standard": {
+				"description": "Standard mode for tcn_receiver_test - development, testing, and basic usage",
+				"requirements": [],
+				"run": {
+					"command":
+            "python3 <holohub_app_source>/src/main.py"
+          ,
+					"workdir": "holohub_bin"
+				}
+			}
+		}
+	}
+}
