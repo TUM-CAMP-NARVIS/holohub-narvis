@@ -59,4 +59,13 @@ spec : holoscan.core.OperatorSpec
     The operator specification.
 )doc")
 
+PYDOC(set_num_streams, R"doc(
+Set the number of input streams (only after creation).
+
+Parameters
+----------
+number_of_streams : int
+    The the number of streams.
+)doc")
+
 }  // namespace holoscan::doc::TcnStreamSynchronizerOp

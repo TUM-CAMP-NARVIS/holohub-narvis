@@ -103,6 +103,7 @@ PYBIND11_MODULE(_nv_video_decoder, m) {
            "name"_a = "tcn_stream_synchronizer"s,
            doc::TcnStreamSynchronizerOp::doc_TcnStreamSynchronizerOp)
       .def("initialize", &TcnStreamSynchronizerOp::initialize, doc::TcnStreamSynchronizerOp::doc_initialize)
-      .def("setup", &TcnStreamSynchronizerOp::setup, "spec"_a, doc::TcnStreamSynchronizerOp::doc_setup);
+      .def("setup", &TcnStreamSynchronizerOp::setup, "spec"_a, doc::TcnStreamSynchronizerOp::doc_setup)
+      .def("set_num_streams", &TcnStreamSynchronizerOp::setNumStreams, doc::TcnStreamSynchronizerOp::doc_set_num_streams);
 }  // PYBIND11_MODULE NOLINT
 }  // namespace holoscan::ops
