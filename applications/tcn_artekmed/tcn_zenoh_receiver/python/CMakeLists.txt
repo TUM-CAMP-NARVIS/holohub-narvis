@@ -26,7 +26,5 @@ target_link_libraries(tcn_zenoh_receiver INTERFACE
     holoscan::ops::format_converter
     holoscan::ops::holoviz
     holoscan::ops::nv_video_decoder
-    holoscan::ops::nv_video_encoder
-    holoscan::ops::nv_video_reader
-    holoscan::ops::video_stream_replayer
+    holoscan::ops::tcn_stream_synchronizer
 )

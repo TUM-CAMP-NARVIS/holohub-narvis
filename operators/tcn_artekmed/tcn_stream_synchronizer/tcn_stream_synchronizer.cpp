@@ -122,6 +122,8 @@ void TcnStreamSynchronizerOp::compute(InputContext& op_input, OutputContext& op_
     }
     nvidia::gxf::Handle<nvidia::gxf::Tensor> handle;
     frame->moveToTensor(handle);
+
+    // for now we only support nv12 input
     maybe_frame_dest.value()->createFromTensor<nvidia::gxf::VideoFormat::GXF_VIDEO_FORMAT_NV12>(handle, nvidia::gxf::SurfaceLayout::GXF_SURFACE_LAYOUT_PITCH_LINEAR);
   }
 

@@ -1,6 +1,6 @@
 {
 	"application": {
-		"name": "tcn_artekmed",
+		"name": "tcn_zenoh_receiver",
 		"description": "TUM-CAMP-NARVIS Artekmed",
 		"authors": [
 			{

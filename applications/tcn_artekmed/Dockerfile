@@ -58,7 +58,7 @@ RUN python3 -m pip install --no-cache-dir -r /tmp/requirements.txt
 
 RUN apt-get update \
     && apt-get install -y \
-      libavformat-dev \
+      libavformat-dev gdb rustc cargo \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /

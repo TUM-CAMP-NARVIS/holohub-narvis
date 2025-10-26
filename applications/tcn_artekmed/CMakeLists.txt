@@ -13,16 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required(VERSION 3.20)
-
-project(tcn_receiver_test)
-
-find_package(holoscan 3.7.0 REQUIRED CONFIG
-             PATHS "/opt/nvidia/holoscan" "/workspace/holoscan-sdk/install")
-
-message(STATUS "Building TCN Artekmed")
-
 add_holohub_application(tcn_zenoh_receiver DEPENDS OPERATORS
-                          nv_video_encoder
                           nv_video_decoder
-                          nv_video_reader)
+                          tcn_artekmed)

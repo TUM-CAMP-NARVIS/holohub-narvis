@@ -9,6 +9,7 @@ import queue
 import threading
 
 import holoscan as hs
+import numpy as np
 
 from holoscan.gxf import Entity
 from holoscan.logger import LogLevel, set_log_level
@@ -17,11 +18,12 @@ from holoscan.resources import CudaStreamPool, UnboundedAllocator, BlockMemoryPo
 
 from holoscan.conditions import AsynchronousCondition, AsynchronousEventState, BooleanCondition, CountCondition, PeriodicCondition, MessageAvailableCondition, DownstreamMessageAffordableCondition
 from holoscan.core import Application, ConditionType, IOSpec, Operator, OperatorSpec, Tracker
-# from holoscan.schedulers import EventBasedScheduler, GreedyScheduler, MultiThreadScheduler
+from holoscan.schedulers import EventBasedScheduler, GreedyScheduler, MultiThreadScheduler
 
 from holoscan.operators import HolovizOp
 
 from holohub.nv_video_decoder import NvVideoDecoderOp
+from holohub.tcn_artekmed import TcnStreamSynchronizerOp
 
 
 import zenoh
@@ -130,14 +132,14 @@ class CdrDecoderOp(Operator):
     def compute(self, op_input, op_output, context):
         value = op_input.receive("input")
 
-        type_name = self.metadata.get("cdr_type_name", None)
+        type_name = self.metadata.get("CdrTypeName", None)
 
         if type_name is None:
             return
 
-        self.metadata.set("source", self.source)
-        self.metadata.set("stream_index", self.stream_index)
-        self.metadata.set("semantic_type", self.semantic_type)
+        self.metadata.set("StreamSource", self.source)
+        self.metadata.set("StreamIndex", self.stream_index)
+        self.metadata.set("SemanticType", self.semantic_type)
 
         for k,v in self.annotations.items():
             self.metadata.set(k, v)
@@ -150,7 +152,7 @@ class CdrDecoderOp(Operator):
             log.exception(e)
             msg = InvalidMessage()
 
-        result = self.result_factory(self.metadata, type_name, msg)
+        result = {"": self.result_factory(self.metadata, type_name, msg)}
         op_output.emit(result, "output")
 
 
@@ -230,7 +232,7 @@ class ZenohSubscriberOp(Operator):
 
         self.async_cond_.event_state = AsynchronousEventState.EVENT_WAITING
 
-        self.metadata.set("cdr_type_name", type_name)
+        self.metadata.set("CdrTypeName", type_name)
 
         op_output.emit(block, "output", acq_timestamp=ts)
 
@@ -263,7 +265,7 @@ class PingRxOp(Operator):
 
     def compute(self, op_input, op_output, context):
         value = op_input.receive("input")
-        print(f"Received bytes: {len(value)}", self.metadata.keys())
+        #print(f"Received: {value}", self.metadata.keys())
 
 
 class App(hs.core.Application):
@@ -290,47 +292,70 @@ class App(hs.core.Application):
             topic_prefix, None, channel_calibration, channel_poses, channels_config, self.session
         )
         stream_keys = list(sorted(stream_config.keys()))
+        num_streams = len(stream_keys)
         print(stream_keys)
 
         def cb_decoder(meta, type_name, msg):
             # is a video message, so return the raw image-bytes (typically bit/bytestream)
-            return msg.image
+            return np.asarray(msg.image, dtype=np.uint8, copy=True)
 
         for stream_index, stream_name in enumerate(stream_keys):
             config = stream_config[stream_name]
             topic = config.descriptor.stream_topic
             subscriber = ZenohSubscriberOp(self, self.session, topic,
                                            name=f"subscriber_{stream_name}")
+
             deserializer = CdrDecoderOp(self, VideoStreamMessage, cb_decoder, stream_name, stream_index,
                                    SemanticType.from_identifier(config.descriptor.buffer_info.semantic_type),
                                    config.annotations,
-                                        name=f"cdr_decoder_{stream_name}")
-            printer = PingRxOp(self, name=f"printer_{stream_name}")
+                                   name=f"cdr_decoder_{stream_name}")
 
             decoder = NvVideoDecoderOp(
                 self,
                 name=f"nv_decoder_{stream_name}",
-                allocator=UnboundedAllocator(self, name="video_decoder_pool_{stream_name}"),
+                allocator=UnboundedAllocator(self, name=f"video_decoder_pool_{stream_name}"),
                 **self.kwargs("decoder"),
             )
 
             stats = StatsOp(self, name=f"stats_{stream_name}")
 
             self.add_flow(subscriber, deserializer, {('output', 'input')})
-            self.add_flow(deserializer, printer, {('output', 'input')})
             self.add_flow(deserializer, decoder, {('output', 'input')})
             self.add_flow(decoder, stats, {("output", "input")})
 
+        # visualizer = HolovizOp(
+        #     self,
+        #     name="visualizer",
+        #     allocator=CudaStreamPool(
+        #         self,
+        #         name="cuda_stream",
+        #         dev_id=0,
+        #         stream_flags=0,
+        #         stream_priority=0,
+        #         reserved_size=1,
+        #         max_size=num_streams,
+        #     ),
+        #     **self.kwargs("holoviz"),
+        # )
 
 
 def main(config_file=None):
     # make configurable or use holoscan debug level here too
     logging.basicConfig(level=logging.DEBUG)
-    set_log_level(LogLevel.WARN)
+    set_log_level(LogLevel.INFO)
 
     app = App()
     app.config(config_file)
-    app.run()
+
+    scheduler = EventBasedScheduler(app, worker_thread_number=8, name="ebs")
+    app.scheduler(scheduler)
+
+    with Tracker(app) as tracker:
+        try:
+            app.run()
+        except KeyboardInterrupt:
+            pass
+        tracker.print()
 
 
 if __name__ == "__main__":
