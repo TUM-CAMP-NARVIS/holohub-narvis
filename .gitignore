@@ -61,3 +61,15 @@ rti_license.dat
 # Holoscan streaming client and server binaries and libraries
 **/holoscan_client_cloud_streaming/
 **/holoscan_server_cloud_streaming/
+/.idea/.name
+/.idea/codeStyles/codeStyleConfig.xml
+/.idea/editor.xml
+/.idea/Holohub.iml
+/.idea/holohub-narvis.iml
+/.idea/misc.xml
+/.idea/modules.xml
+/ngc-cli.md5
+/ngccli_linux.zip
+/.idea/inspectionProfiles/profiles_settings.xml
+/.idea/codeStyles/Project.xml
+/.idea/vcs.xml
