@@ -46,17 +46,14 @@ class TcnStreamSynchronizerOp : public Operator {
                ExecutionContext& context) override;
   void stop() override;
 
-  void setNumStreams(int num_streams) { num_streams_ = num_streams; }
-
  private:
-  int num_streams_ = 1;
   std::vector<std::string> in_port_names;
 
   Parameter<int> cuda_device_ordinal_;
   Parameter<int> width_;
   Parameter<int> height_;
   Parameter<std::shared_ptr<holoscan::Allocator>> allocator_;
-  Parameter<std::vector<std::string>> out_frame_names_;
+  Parameter<int> num_streams_;
   Parameter<bool> verbose_;
 
   CudaStreamHandler cuda_stream_handler_;

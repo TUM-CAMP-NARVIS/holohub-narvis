@@ -23,7 +23,7 @@ from holoscan.schedulers import EventBasedScheduler, GreedyScheduler, MultiThrea
 from holoscan.operators import HolovizOp
 
 from holohub.nv_video_decoder import NvVideoDecoderOp
-from holohub.tcn_artekmed import TcnStreamSynchronizerOp
+from holohub.tcn_stream_synchronizer import TcnStreamSynchronizerOp
 
 
 import zenoh

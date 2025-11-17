@@ -58,10 +58,11 @@ class PyTcnStreamSynchronizerOp : public TcnStreamSynchronizerOp {
 
   // Define a constructor that fully initializes the object.
   PyTcnStreamSynchronizerOp(Fragment* fragment, const py::args& args, int cuda_device_ordinal,
-                     std::shared_ptr<::holoscan::Allocator> allocator, bool verbose,
+                     std::shared_ptr<::holoscan::Allocator> allocator, int num_streams, bool verbose,
                      const std::string& name = "nv_video_decoder")
       : TcnStreamSynchronizerOp(ArgList{Arg{"cuda_device_ordinal", cuda_device_ordinal},
                                  Arg{"allocator", allocator},
+                                 Arg{"num_streams", num_streams},
                                  Arg{"verbose", verbose}}) {
     add_positional_condition_and_resource_args(this, args);
     name_ = name;
@@ -73,11 +74,11 @@ class PyTcnStreamSynchronizerOp : public TcnStreamSynchronizerOp {
 
 /* The python module */
 
-PYBIND11_MODULE(_nv_video_decoder, m) {
+PYBIND11_MODULE(_tcn_stream_synchronizer, m) {
   m.doc() = R"pbdoc(
         Holoscan SDK Python Bindings
         ---------------------------------------
-        .. currentmodule:: _nv_video_decoder
+        .. currentmodule:: _tcn_stream_synchronizer
         .. autosummary::
            :toctree: _generate
     )pbdoc";
@@ -94,16 +95,17 @@ PYBIND11_MODULE(_nv_video_decoder, m) {
                     const py::args&,
                     int,
                     std::shared_ptr<::holoscan::Allocator>,
+                    int,
                     bool,
                     const std::string&>(),
            "fragment"_a,
            "cuda_device_ordinal"_a,
            "allocator"_a,
+           "num_streams"_a = 1,
            "verbose"_a = false,
            "name"_a = "tcn_stream_synchronizer"s,
            doc::TcnStreamSynchronizerOp::doc_TcnStreamSynchronizerOp)
       .def("initialize", &TcnStreamSynchronizerOp::initialize, doc::TcnStreamSynchronizerOp::doc_initialize)
-      .def("setup", &TcnStreamSynchronizerOp::setup, "spec"_a, doc::TcnStreamSynchronizerOp::doc_setup)
-      .def("set_num_streams", &TcnStreamSynchronizerOp::setNumStreams, doc::TcnStreamSynchronizerOp::doc_set_num_streams);
+      .def("setup", &TcnStreamSynchronizerOp::setup, "spec"_a, doc::TcnStreamSynchronizerOp::doc_setup);
 }  // PYBIND11_MODULE NOLINT
 }  // namespace holoscan::ops

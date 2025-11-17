@@ -37,10 +37,13 @@
 namespace holoscan::ops {
 
 void TcnStreamSynchronizerOp::setup(OperatorSpec& spec) {
+  spec.param(num_streams_, "num_streams", "Number of Streams", "Number of input streams to synchronize.");
+  HOLOSCAN_LOG_INFO("Synchronizer ports: {}", num_streams_.get());
 
   in_port_names.clear();
-  for (int i = 0; i < num_streams_; ++i) {
+  for (int i = 0; i < num_streams_.get(); ++i) {
     in_port_names.push_back(std::string("input") + std::to_string(i));
+    HOLOSCAN_LOG_INFO("Input port name: {}", in_port_names.back());
     spec.input<holoscan::gxf::Entity>(in_port_names[i]);
   }
 
@@ -53,7 +56,6 @@ void TcnStreamSynchronizerOp::setup(OperatorSpec& spec) {
              ParameterFlag::kOptional);
 
   spec.param(allocator_, "allocator", "Allocator", "Allocator for output buffers.");
-  spec.param(out_frame_names_, "out_frame_names", "Output Frames", "Output frames", {});
   spec.param(verbose_, "verbose", "Verbose", "Print detailed decoder information", false);
 
   cuda_stream_handler_.define_params(spec);
